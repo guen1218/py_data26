@@ -1,0 +1,43 @@
+import pandas as pd
+
+# 1. 데이터 불러오기 및 불필요한 열 삭제
+titanic_url = 'https://github.com/sehakflower/data/blob/main/titanic_1309.xlsx?raw=true'
+titanic = pd.read_excel(titanic_url, sheet_name='total')
+titanic_df = titanic.drop(['body', 'home.dest'], axis=1)
+
+# 2. 연령별 생존율 파악하기
+titanic_df['age_cat'] = pd.cut(
+    titanic_df['age'],
+    bins=[0, 3, 7, 15, 30, 60, 100],
+    include_lowest=True,
+    labels=['baby', 'children', 'teenage', 'young', 'adult', 'old']
+)
+print(titanic_df.groupby('age_cat', observed=False).mean(numeric_only=True))
+
+# 3. 승객 등급 및 성별 생존율 파악하기
+print(titanic_df.groupby(['pclass', 'sex']).mean(numeric_only=True))
+
+# 4. 보트 탑승 승객의 생존율 파악하기
+boat_survivors = titanic_df[titanic_df['boat'].notnull()]
+nboat_survivors = titanic_df[titanic_df['boat'].isnull()]
+
+print(boat_survivors.groupby('sex')['survived'].mean())
+print(nboat_survivors.groupby('sex')['survived'].mean())
+
+# 5. 귀족 계급의 생존율 파악하기
+conversion_special = lambda x: x.split(',')[1].split('.')[0].strip()
+titanic_df['title'] = titanic_df['name'].map(conversion_special)
+
+titanic_df['title'] = titanic_df['title'].replace('Mlle', 'Miss')
+titanic_df['title'] = titanic_df['title'].replace('Ms', 'Miss')
+titanic_df['title'] = titanic_df['title'].replace('Mme', 'Mrs')
+
+Special = ['Lady', 'the Countess', 'Countess', 'Capt', 'Master', 'Col', 'Don', 'Dr', 'Major', 'Rev', 'Sir', 'Jonkheer', 'Dona']
+
+for each in Special:
+    titanic_df['title'] = titanic_df['title'].replace(each, 'Special')
+
+print(titanic_df[['title', 'survived']].groupby(['title'], as_index=False).mean())
+
+# 6. 성별 및 호칭별 생존율 파악하기
+print(titanic_df.groupby(['sex', 'title']).mean(numeric_only=True))
